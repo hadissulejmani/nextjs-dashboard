@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcrypt';
+import google from 'next-auth/providers/google';
 
 async function getUser(email: string): Promise<User | undefined> {
     try {
@@ -16,7 +17,7 @@ async function getUser(email: string): Promise<User | undefined> {
     }
 }
 
-export const { auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
     providers: [
         Credentials({
@@ -40,5 +41,23 @@ export const { auth, signIn, signOut } = NextAuth({
                 return null;
             },
         }),
+        google({
+            clientId: process.env.GOOGLE_ID,
+            clientSecret: process.env.GOOGLE_SECRET,
+            authorization: {
+              params: {
+                prompt: "consent",
+                access_type: "offline",
+                response_type: "code",
+              },
+            },
+          }),
     ],
+    callbacks: {
+        async signIn({ account, profile }) {
+            if (account.provider === "google") {
+              return profile.email_verified && profile.email.endsWith("@example.com")
+            }
+            return true // Do different verification for other providers that don't have `email_verified`
+          },
 });
