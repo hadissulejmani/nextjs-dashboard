@@ -6,6 +6,8 @@ import { sql } from '@vercel/postgres';
 import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcrypt';
 import google from 'next-auth/providers/google';
+import Google from 'next-auth/providers/google';
+import GoogleProvider from 'next-auth/providers/google';
 
 async function getUser(email: string): Promise<User | undefined> {
     try {
@@ -19,6 +21,15 @@ async function getUser(email: string): Promise<User | undefined> {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
+    callbacks: {
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id;
+                token.email = user.email;
+            }
+            return token;
+        },
+    },
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -41,7 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 return null;
             },
         }),
-        google({
+        GoogleProvider({
             clientId: process.env.GOOGLE_ID,
             clientSecret: process.env.GOOGLE_SECRET,
             authorization: {
@@ -53,11 +64,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           }),
     ],
-    callbacks: {
-        async signIn({ account, profile }) {
-            if (account.provider === "google") {
-              return profile.email_verified && profile.email.endsWith("@example.com")
-            }
-            return true // Do different verification for other providers that don't have `email_verified`
-          },
 });
