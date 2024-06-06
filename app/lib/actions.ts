@@ -110,7 +110,7 @@ export async function deleteInvoice(id: string) {
 
 export async function authenticate(prevState: string | undefined, formData: FormData) {
     try {
-        await signIn('credentials', formData);
+        await signIn('credentials', formData, '/dashboard');
     } catch (error) {
         if (error instanceof AuthError) {
             switch (error.type) {
